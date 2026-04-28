@@ -4,12 +4,27 @@ import React, { useState, useEffect, useCallback } from "react";
 // GEMINI CONFIG
 // ============================================================
 async function analyzeWithGemini(base64Image, mimeType) {
-  const response = await fetch("/api/analyze", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ base64Image, mimeType }),
-  });
-  return response.json();
+  const GEMINI_KEY = "TU_KEY_AQUI";
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [
+          { inline_data: { mime_type: mimeType, data: base64Image } },
+          { text: `Analiza esta foto de pesca deportiva. Hay una lobina y una pelota roja de 3cm de diámetro. Calcula cuántas pelotas caben a lo largo de la lobina y multiplica por 3. Responde SOLO JSON sin backticks: {"pelota_encontrada":true,"pez_encontrado":true,"largo_cm":35.5,"pelotas_que_caben":11.8,"confianza":"alta","notas":""}` }
+        ]}]
+      })
+    }
+  );
+  const data = await response.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+  try {
+    return JSON.parse(text.replace(/```json|```/g, "").trim());
+  } catch {
+    return { pelota_encontrada: false, pez_encontrado: false, largo_cm: null, notas: "Error al analizar" };
+  }
 }
 // ============================================================
 // CUENTAS
